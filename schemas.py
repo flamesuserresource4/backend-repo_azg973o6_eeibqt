@@ -1,48 +1,42 @@
 """
-Database Schemas
+Database Schemas for AI-powered Parking App
 
-Define your MongoDB collection schemas here using Pydantic models.
-These schemas are used for data validation in your application.
-
-Each Pydantic model represents a collection in your database.
-Model name is converted to lowercase for the collection name:
-- User -> "user" collection
-- Product -> "product" collection
-- BlogPost -> "blogs" collection
+Each Pydantic model corresponds to a MongoDB collection (collection name is the
+lowercased class name).
 """
-
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, Literal
+from datetime import datetime
 
-# Example schemas (replace with your own):
-
+# Users are kept for future extension/auth (not used heavily in demo UI)
 class User(BaseModel):
-    """
-    Users collection schema
-    Collection name: "user" (lowercase of class name)
-    """
     name: str = Field(..., description="Full name")
     email: str = Field(..., description="Email address")
-    address: str = Field(..., description="Address")
-    age: Optional[int] = Field(None, ge=0, le=120, description="Age in years")
     is_active: bool = Field(True, description="Whether user is active")
 
-class Product(BaseModel):
-    """
-    Products collection schema
-    Collection name: "product" (lowercase of class name)
-    """
-    title: str = Field(..., description="Product title")
-    description: Optional[str] = Field(None, description="Product description")
-    price: float = Field(..., ge=0, description="Price in dollars")
-    category: str = Field(..., description="Product category")
-    in_stock: bool = Field(True, description="Whether product is in stock")
+class ParkingLot(BaseModel):
+    name: str = Field(..., description="Display name of the parking lot")
+    latitude: float = Field(..., ge=-90, le=90, description="Latitude of lot")
+    longitude: float = Field(..., ge=-180, le=180, description="Longitude of lot")
+    address: Optional[str] = Field(None, description="Street address")
+    price_per_hour: float = Field(..., ge=0, description="Base price per hour in USD")
+    total_spots: int = Field(..., ge=1, description="Total number of spots in the lot")
 
-# Add your own schemas here:
-# --------------------------------------------------
+class ParkingSpot(BaseModel):
+    lot_id: str = Field(..., description="ID of the parking lot this spot belongs to")
+    spot_number: str = Field(..., description="Human-readable spot label/number")
+    vehicle_type: Literal["car", "motorcycle", "ev", "accessible"] = Field(
+        "car", description="Spot category"
+    )
+    is_occupied: bool = Field(False, description="Whether the spot is currently occupied")
 
-# Note: The Flames database viewer will automatically:
-# 1. Read these schemas from GET /schema endpoint
-# 2. Use them for document validation when creating/editing
-# 3. Handle all database operations (CRUD) directly
-# 4. You don't need to create any database endpoints!
+class Booking(BaseModel):
+    lot_id: str = Field(..., description="ID of the parking lot")
+    spot_id: str = Field(..., description="ID of the booked spot")
+    vehicle_plate: str = Field(..., description="Vehicle plate number")
+    user_name: Optional[str] = Field(None, description="Name for the booking")
+    start_time: Optional[datetime] = Field(None, description="Start time; set by server if missing")
+    end_time: Optional[datetime] = Field(None, description="End time; set when booking ends")
+    status: Literal["active", "completed", "cancelled"] = Field(
+        "active", description="Booking lifecycle state"
+    )
